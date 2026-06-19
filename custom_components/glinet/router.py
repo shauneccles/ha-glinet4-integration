@@ -352,12 +352,10 @@ class GLinetRouter:
             if device_mac in self._devices:
                 continue
 
-            alias = dev_info.get("alias", "").strip()
-            name = dev_info.get("name", "").strip()
-            # Skip if both alias and name are empty
-            if not alias and not name:
-                continue
-
+            # Track every connected client. Devices without a name or alias
+            # (many IoT devices, e.g. bulbs and sensors) were previously
+            # dropped here, leaving most of the network untracked (issue #139).
+            # ClientDevInfo.update() falls back to a MAC-derived name for these.
             new_device = True
             device = ClientDevInfo(device_mac)
             device.update(dev_info)

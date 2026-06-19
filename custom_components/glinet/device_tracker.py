@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from propcache.api import cached_property
-
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.core import HomeAssistant, callback
@@ -70,9 +68,6 @@ def add_entities(
 class GLinetDevice(ScannerEntity):
     """Representation of a GLinet tracked device."""
 
-    _attr_hostname: str
-    _attr_ip_address: str | None
-    _attr_mac_address: str
     _attr_source_type: SourceType = SourceType.ROUTER
 
     def __init__(self, router: GLinetRouter, device: ClientDevInfo) -> None:
@@ -80,14 +75,11 @@ class GLinetDevice(ScannerEntity):
         self._router: GLinetRouter = router
         self._device: ClientDevInfo = device
         self._icon = "mdi:radar"
-        self._attr_hostname: str = self._device.name or DEFAULT_DEVICE_NAME
-        self._attr_ip_address: str | None = self._device.ip_address
-        self._attr_mac_address: str = self._device.mac
 
     @property
     def unique_id(self) -> str:
         """Return a unique ID."""
-        return self._attr_mac_address
+        return self._device.mac
 
     @property
     def icon(self) -> str:
@@ -97,7 +89,7 @@ class GLinetDevice(ScannerEntity):
     @property
     def name(self) -> str:
         """Return the name."""
-        return self._attr_hostname
+        return self._device.name or DEFAULT_DEVICE_NAME
 
     @property
     def is_connected(self) -> bool:
@@ -122,25 +114,25 @@ class GLinetDevice(ScannerEntity):
             )
         return attrs
 
-    @cached_property
+    @property
     def hostname(self) -> str:
         """Return the hostname of device."""
-        return self._attr_hostname
+        return self._device.name or DEFAULT_DEVICE_NAME
 
-    @cached_property
+    @property
     def ip_address(self) -> str | None:
         """Return the primary ip address of the device."""
-        return self._attr_ip_address
+        return self._device.ip_address
 
-    @cached_property
+    @property
     def mac_address(self) -> str | None:
         """Return the mac address of the device."""
-        return self._attr_mac_address
+        return self._device.mac
 
     @property
     def should_poll(self) -> bool:
-        """No polling needed."""
-        return True
+        """State is pushed via the router's dispatcher signal, not polled."""
+        return False
 
     @callback
     def async_on_demand_update(self) -> None:

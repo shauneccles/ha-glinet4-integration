@@ -337,6 +337,11 @@ class GLinetRouter:
             if wrt_devices is None or wrt_devices == {}:
                 self._connected_devices = 0
             return
+        _LOGGER.debug(
+            "connected_clients returned %d online device(s): %s",
+            len(wrt_devices),
+            list(wrt_devices.keys()),
+        )
         consider_home = self._options.get(
             CONF_CONSIDER_HOME, DEFAULT_CONSIDER_HOME.total_seconds()
         )
@@ -360,6 +365,12 @@ class GLinetRouter:
             device = ClientDevInfo(device_mac)
             device.update(dev_info)
             self._devices[device_mac] = device
+            _LOGGER.debug(
+                "Discovered new tracked device %s (name=%r alias=%r)",
+                device_mac,
+                dev_info.get("name"),
+                dev_info.get("alias"),
+            )
 
         async_dispatcher_send(self.hass, self.signal_device_update)
         if new_device:

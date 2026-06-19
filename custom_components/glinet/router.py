@@ -178,7 +178,11 @@ class GLinetRouter:
         # TODO here we ask this to update all on the same scan interval
         # but in future some sensors e.g WANip need to update less regularly than
         # others
-        async_track_time_interval(self.hass, self.update_states, SCAN_INTERVAL)
+        # Register the unsub so the poller is cancelled on unload/reload;
+        # otherwise every reload leaks another timer that keeps polling.
+        self._entry.async_on_unload(
+            async_track_time_interval(self.hass, self.update_states, SCAN_INTERVAL)
+        )
 
     async def get_api(self) -> GLinet:
         """Optimistically returns a GLinet object for connection to the API, no test included."""

@@ -22,7 +22,7 @@ DEFAULT_DEVICE_NAME = "Unknown device"
 
 
 async def async_setup_entry(
-    _: HomeAssistant,
+    hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
@@ -34,6 +34,13 @@ async def async_setup_entry(
     def update_router() -> None:
         """Update the values of the router."""
         add_entities(router, async_add_entities, tracked)
+
+    # Create entities for any devices discovered on subsequent polls, not just
+    # those present at setup. Without this, new devices were only added on a
+    # reload of the integration (issue #139).
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, router.signal_device_new, update_router)
+    )
 
     update_router()
 

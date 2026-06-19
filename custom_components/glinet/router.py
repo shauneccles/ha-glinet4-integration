@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from enum import StrEnum
 import logging
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -35,7 +34,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .const import API_PATH, DOMAIN
-from .utils import adjust_mac
+from .utils import DeviceInterfaceType, adjust_mac, interface_type_from_client
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -47,24 +46,6 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=30)
 T = TypeVar("T")
-
-
-class DeviceInterfaceType(StrEnum):
-    """Enum for the possible interface types reported by glipy."""
-
-    WIFI_24 = "2.4GHz"
-    WIFI_5 = "5GHz"
-    LAN = "LAN"
-    WIFI_24_GUEST = "2.4GHz Guest"
-    WIFI_5_GUEST = "5GHz Guest"
-    UNKNOWN = "Unknown"
-    DONGLE = "Dongle"
-    BYPASS_ROUTE = "Bypass Route"
-    UNKNOWN2 = "Unknown"
-    MLO = "MLO"
-    MLO_GUEST = "MLO Guest"
-    WIFI_6 = "6GHz"
-    WIFI_6_GUEST = "6GHz Guest"
 
 
 class GLinetRouter:
@@ -625,9 +606,16 @@ class ClientDevInfo:
             self._ip_address = dev_info.get("ip")
             self._last_activity = now
             self._connected = dev_info.get("online", False)
-            self._if_type = list(DeviceInterfaceType)[
-                dev_info.get("type", 5)
-            ]  # TODO be more index safe
+            self._if_type = interface_type_from_client(dev_info)
+            if self._if_type is DeviceInterfaceType.UNKNOWN and (
+                dev_info.get("iface") or dev_info.get("type") is not None
+            ):
+                _LOGGER.debug(
+                    "Unrecognised interface for device %s: iface=%r type=%r",
+                    self._mac,
+                    dev_info.get("iface"),
+                    dev_info.get("type"),
+                )
         # a device might not actually be online but we want to consider it home
         elif self._connected:
             self._connected = (

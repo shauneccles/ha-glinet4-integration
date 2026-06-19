@@ -38,14 +38,49 @@ _IFACE_MAP: dict[str, DeviceInterfaceType] = {
 }
 
 
+# Fallback map from the integer ``type`` code the router historically returned.
+# The index positions are significant (see issue #143): index 8 is a reserved/
+# unknown slot on observed firmware. This is only consulted when the ``iface``
+# string is missing or unrecognised, because relying on the integer code alone
+# silently mislabels devices if a future firmware renumbers these codes - and
+# previously crashed with an IndexError on Wi-Fi 7 routers (issues #143, #144).
+_TYPE_INDEX: tuple[DeviceInterfaceType, ...] = (
+    DeviceInterfaceType.WIFI_24,  # 0
+    DeviceInterfaceType.WIFI_5,  # 1
+    DeviceInterfaceType.LAN,  # 2
+    DeviceInterfaceType.WIFI_24_GUEST,  # 3
+    DeviceInterfaceType.WIFI_5_GUEST,  # 4
+    DeviceInterfaceType.UNKNOWN,  # 5
+    DeviceInterfaceType.DONGLE,  # 6
+    DeviceInterfaceType.BYPASS_ROUTE,  # 7
+    DeviceInterfaceType.UNKNOWN,  # 8 (reserved)
+    DeviceInterfaceType.MLO,  # 9
+    DeviceInterfaceType.MLO_GUEST,  # 10
+    DeviceInterfaceType.WIFI_6,  # 11
+    DeviceInterfaceType.WIFI_6_GUEST,  # 12
+)
+
+
+def _interface_type_from_code(raw_type: object) -> DeviceInterfaceType:
+    """Resolve the legacy integer ``type`` code to an interface, never raising."""
+    try:
+        index = int(raw_type)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return DeviceInterfaceType.UNKNOWN
+    if 0 <= index < len(_TYPE_INDEX):
+        return _TYPE_INDEX[index]
+    return DeviceInterfaceType.UNKNOWN
+
+
 def interface_type_from_client(dev_info: dict) -> DeviceInterfaceType:
     """Best-effort resolution of the interface a client is connected through.
 
     Prefers the human-readable ``iface`` string the router returns (e.g.
-    "2.4G", "5G", "6G", "MLO", "cable"). Previously the integer ``type`` field
-    was used as a positional index into the enum, which silently mislabelled -
-    or with an out-of-range value crashed - newer interfaces such as MLO and
-    6GHz. Unrecognised interfaces resolve to UNKNOWN so that a device is always
+    "2.4G", "5G", "6G", "MLO", "cable"), falling back to the legacy integer
+    ``type`` code. Previously the integer code was used as a positional index
+    into the enum, which silently mislabelled - or with an out-of-range value
+    crashed - newer interfaces such as MLO and 6GHz (issues #143, #144).
+    Unrecognised interfaces resolve to UNKNOWN so that a device is always
     tracked, never dropped, regardless of how it is connected.
     """
     iface = str(dev_info.get("iface") or "").strip().lower()
@@ -63,7 +98,8 @@ def interface_type_from_client(dev_info: dict) -> DeviceInterfaceType:
             return DeviceInterfaceType.WIFI_5_GUEST
     if "mlo" in iface:
         return DeviceInterfaceType.MLO
-    return DeviceInterfaceType.UNKNOWN
+    # Fall back to the legacy integer code when the iface string is unhelpful.
+    return _interface_type_from_code(dev_info.get("type"))
 
 
 def adjust_mac(mac: str, delta: int, sep: str = ":") -> str:

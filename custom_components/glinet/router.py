@@ -401,7 +401,10 @@ class GLinetRouter:
         ifaces = await self._update_platform(self._api.wifi_ifaces_get)
         if not ifaces:
             return
+        new_iface = False
         for name, iface in ifaces.items():
+            if name not in self._wifi_ifaces:
+                new_iface = True
             self._wifi_ifaces[name] = WifiInterface(
                 name=name,
                 enabled=iface.get("enabled", False),
@@ -410,6 +413,8 @@ class GLinetRouter:
                 hidden=iface.get("hidden", False),
                 encryption=iface.get("encryption", "UNKNOWN"),
             )
+        if new_iface:
+            async_dispatcher_send(self.hass, self.signal_iface_new)
 
     async def update_tailscale_state(self) -> None:
         """Make a call to the API to get the tailscale state."""
@@ -516,6 +521,11 @@ class GLinetRouter:
     def signal_device_update(self) -> str:
         """Event specific per GL-iNet entry to signal updates in devices."""
         return f"{DOMAIN}-device-update-{self._factory_mac}"
+
+    @property
+    def signal_iface_new(self) -> str:
+        """Event specific per GL-iNet entry to signal a new WiFi interface."""
+        return f"{DOMAIN}-iface-new-{self._factory_mac}"
 
     @property
     def host(self) -> str:

@@ -34,8 +34,14 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
-from .const import API_PATH, DOMAIN
-from .utils import adjust_mac
+from .const import (
+    API_PATH,
+    CONF_TRACK_RANDOMIZED_MAC,
+    DEFAULT_TRACK_RANDOMIZED_MAC,
+    DOMAIN,
+    TRACK_RANDOMIZED_MAC_IGNORE,
+)
+from .utils import adjust_mac, is_randomized_mac
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -361,6 +367,14 @@ class GLinetRouter:
             if device_mac in self._devices:
                 continue
 
+            # Optionally ignore clients using MAC randomization entirely, so
+            # they don't accumulate as (even disabled) entities over time.
+            if (
+                self.randomized_mac_mode == TRACK_RANDOMIZED_MAC_IGNORE
+                and is_randomized_mac(device_mac)
+            ):
+                continue
+
             # Track every connected client. Devices without a name or alias
             # (many IoT devices, e.g. bulbs and sensors) were previously
             # dropped here, leaving most of the network untracked (issue #139).
@@ -517,6 +531,13 @@ class GLinetRouter:
     def devices(self) -> dict[str, ClientDevInfo]:
         """Return devices."""
         return self._devices
+
+    @property
+    def randomized_mac_mode(self) -> str:
+        """How clients using MAC randomization should be tracked."""
+        return self._options.get(
+            CONF_TRACK_RANDOMIZED_MAC, DEFAULT_TRACK_RANDOMIZED_MAC
+        )
 
     @property
     def api(self) -> GLinet:

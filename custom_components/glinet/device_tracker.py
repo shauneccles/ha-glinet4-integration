@@ -10,6 +10,9 @@ from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
+from .const import TRACK_RANDOMIZED_MAC_ENABLED
+from .utils import is_randomized_mac
+
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -102,12 +105,28 @@ class GLinetDevice(ScannerEntity):
         return SourceType.ROUTER
 
     @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Decide whether a new tracker is enabled by default.
+
+        Randomized-MAC clients honour the ``track_randomized_mac`` option: only
+        ``enabled`` turns them on by default (``ignore`` stops the entity being
+        created at all - handled in the router). For every other client we
+        defer to Home Assistant's ScannerEntity heuristic, which enables a
+        tracker only when its MAC maps to a known device and otherwise leaves
+        it disabled to avoid surfacing unknown floating MACs.
+        """
+        if is_randomized_mac(self._device.mac):
+            return self._router.randomized_mac_mode == TRACK_RANDOMIZED_MAC_ENABLED
+        return super().entity_registry_enabled_default
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the attributes."""
 
         attrs = {}
 
         attrs["interface_type"] = str(self._device.interface_type)
+        attrs["mac_randomized"] = is_randomized_mac(self._device.mac)
         if self._device.last_activity:
             attrs["last_time_reachable"] = self._device.last_activity.isoformat(
                 timespec="seconds"

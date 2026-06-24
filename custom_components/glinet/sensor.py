@@ -178,23 +178,17 @@ async def async_setup_entry(
 
 
 # Minimum movement in the derived boot time before a new timestamp is committed
-# to state. Mirrors Home Assistant's UniFi integration, which uses the same
-# tolerance to stop derived uptime timestamps flapping on every poll.
 UPTIME_DEVIATION = timedelta(seconds=120)
 
 
 def _derive_boot_time(seconds_uptime: float) -> datetime:
     """Derive the boot timestamp from the router's uptime counter."""
-    return dt_util.utcnow() - timedelta(seconds=seconds_uptime)
+    now: datetime = dt_util.utcnow()
+    return now - timedelta(seconds=seconds_uptime)
 
 
 def _boot_time_changed(old: datetime | None, new: datetime) -> bool:
-    """Return whether the boot time moved enough to warrant a state write.
-
-    Mirrors UniFi's ``async_uptime_value_changed_fn``: sub-tolerance fluctuation
-    from second-granularity uptime and poll jitter is ignored so the timestamp
-    stays stable between reboots.
-    """
+    """Return whether the boot time moved enough to warrant a state write."""
     return old is None or abs(new - old) > UPTIME_DEVIATION
 
 
@@ -240,8 +234,7 @@ class SystemUptimeSensor(GliSensorBase):
     derived as ``now - uptime``. It is recomputed only when the router reports a
     fresh uptime value (otherwise reading the property between polls would drift
     the estimate against an advancing clock), and the committed value is held
-    stable within ``UPTIME_DEVIATION`` -- the same approach core uses for the
-    UniFi integration.
+    stable within ``UPTIME_DEVIATION``.
     """
 
     _attr_native_value: datetime | None = None

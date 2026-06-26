@@ -1,0 +1,32 @@
+name: Devcontainer
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".devcontainer/**"
+      - "pyproject.toml"
+      - "uv.lock"
+  pull_request:
+    paths:
+      - ".devcontainer/**"
+      - "pyproject.toml"
+      - "uv.lock"
+
+jobs:
+  build:
+    name: Build and sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Builds the image, runs the lifecycle commands (postCreate: uv sync),
+      # then verifies the environment works. Catches a broken Dockerfile,
+      # devcontainer.json, or an un-syncable lockfile — including Dependabot's
+      # base-image / uv bumps before they merge.
+      - name: Build devcontainer and verify
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: uv run hass --version

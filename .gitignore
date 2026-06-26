@@ -1,4 +1,7 @@
-/config
+# Dev Home Assistant instance: commit only configuration.yaml; everything else
+# HA writes here (database, .storage, onboarding, secrets) stays out of git.
+/config/*
+!/config/configuration.yaml
 config2/*
 
 tests/testing_config/deps

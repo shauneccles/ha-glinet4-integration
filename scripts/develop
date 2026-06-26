@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Start a local Home Assistant with this integration loaded, for development.
+# Mirrors the ludeeus/integration_blueprint workflow, adapted to uv.
+#
+#   scripts/develop      # HA starts in debug mode on http://localhost:8123
+#
+set -e
+
+cd "$(dirname "$0")/.."
+
+# config/configuration.yaml is committed (default_config + debug logging); Home
+# Assistant writes the rest of its state — onboarding, database, .storage —
+# alongside it, all gitignored.
+#
+# `uv run` syncs the environment from pyproject.toml / uv.lock, which installs
+# this project editable, so Home Assistant discovers custom_components/glinet
+# automatically — no symlink or PYTHONPATH needed.
+uv run hass --config "${PWD}/config" --debug

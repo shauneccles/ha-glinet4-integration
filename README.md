@@ -22,20 +22,14 @@ Contributions are welcome, for ideas see the TODO list below or the various `#TO
 2. Open the HACS page in home assistant
 3. Search for GL-iNet and download the latest release
 
-## Dev set up
+## Development
 
-1. Set up the vscode homeassistant core [dev setup](https://developers.home-assistant.io/docs/development_environment/)
+See **[DEVELOPMENT.md](DEVELOPMENT.md)** for the full setup.
 
-- Or you could just use a running install of homeassistant (restarts are required for a lot of changes)
-
-2. Run once to generate directories
-3. Create a new directory `/workspaces/glinet`
-4. Cntr Shift P, `add folder to workspace` and then add the above folder
-5. `cd` into that directory
-6. `git clone https://github.com/HarvsG/ha-glinet4-integration.git . `
-7. `mkdir -p /workspaces/core/config/custom_components && cd /workspaces/core/config/custom_components`
-8. `ln -s /workspaces/glinet/custom_components/glinet`
-9. You may need to config a new ssh key inside the container. [Use this](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account) - this will be overwritten if you rebuild the container
+In short: open the repo in a VS Code **Dev Container** (or Codespace) and run
+`scripts/develop` to launch Home Assistant with this integration loaded, then add
+it from the UI. A no-devcontainer path (`uv sync && scripts/develop`) is also
+documented.
 
 ## TODO
 
